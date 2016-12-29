@@ -8,17 +8,51 @@
 import aQute.bnd.build.Workspace
 import aQute.bnd.osgi.Constants
 
+def currentJvm = org.gradle.internal.jvm.Jvm.current()
+
+logger.lifecycle """\
+================================================================================
+Welcome to syksail
+================================================================================
+GIT            : https://github.com/evandor/skysail
+CI             : http://jenkins.twentyeleven.de
+
+Gradle version : $gradle.gradleVersion
+Gradle home is : $gradle.gradleHomeDir
+Gradle user dir: $gradle.gradleUserHomeDir
+Base directory : $projectDir
+Java Version   : $currentJvm
+================================================================================
+"""
+
 /* Add bnd gradle plugin as a script dependency */
 buildscript {
   dependencies {
     classpath bndPlugin
+  }
+
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+
+  dependencies {
+    //classpath "gradle.plugin.com.jakeout:inspector:0.3.0"
+    classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.1"
+    //classpath "me.champeau.gradle:jbake-gradle-plugin:0.2"
+    classpath "net.rdrei.android.buildtimetracker:gradle-plugin:0.8.+"
+    //classpath 'info.solidsoft.gradle.pitest:gradle-pitest-plugin:1.1.10'
   }
 }
 
 /* Initialize the bnd workspace */
 Workspace.setDriver(Constants.BNDDRIVER_GRADLE)
 Workspace.addGestalt(Constants.GESTALT_BATCH, null)
-ext.bndWorkspace = new Workspace(rootDir, bnd_cnf).setOffline(gradle.startParameter.offline)
+ext.bndWorkspace = new Workspace(rootDir, bnd_cnf)
+if (bndWorkspace == null) {
+  throw new GradleException("Unable to load workspace ${rootDir}/${bnd_cnf}")
+}
 
 ext.cnf = rootProject.project(bnd_cnf)
 
@@ -27,8 +61,35 @@ subprojects {
   def bndProject = bndWorkspace.getProject(name)
   if (bndProject != null) {
     plugins.apply 'biz.aQute.bnd'
+    //apply plugin: "com.jakeout.gradle-inspector"
+    apply plugin: "com.dorongold.task-tree"
+    // https://github.com/bndtools/bnd/wiki/Gradle-Build-Customizations
+    apply from: cnf.file('gradle/javadoc.gradle')
+    //apply plugin: "info.solidsoft.pitest"
   }
 }
+
+/*apply plugin: "build-time-tracker"
+
+buildtimetracker {
+  reporters {
+    csv {
+      output "build/times.csv"
+      append true
+      header false
+    }
+
+    summary {
+      ordered false
+      threshold 50
+      barstyle "unicode"
+    }
+
+    csvSummary {
+      csv "build/times.csv"
+    }
+  }
+}*/
 
 task wrapper(type: Wrapper) {
   jarFile = rootProject.file('.gradle-wrapper/gradle-wrapper.jar')

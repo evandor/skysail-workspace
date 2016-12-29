@@ -10,7 +10,7 @@ import aQute.bnd.osgi.Constants
 /* Add bnd gradle plugin as a script dependency */
 buildscript {
   repositories {
-    mavenCentral()
+    jcenter()
   }
   dependencies {
     classpath bnd_plugin
@@ -25,7 +25,10 @@ buildscript {
 /* Initialize the bnd workspace */
 Workspace.setDriver(Constants.BNDDRIVER_GRADLE)
 Workspace.addGestalt(Constants.GESTALT_BATCH, null)
-def workspace = new Workspace(rootDir, bnd_cnf).setOffline(startParameter.offline)
+def workspace = new Workspace(rootDir, bnd_cnf)
+if (workspace == null) {
+  throw new GradleException("Unable to load workspace ${rootDir}/${bnd_cnf}")
+}
 
 /* Add cnf project to the graph */
 include bnd_cnf
@@ -69,9 +72,10 @@ if (projectNames.remove('')) {
 /* Add each project and its dependencies to the graph */
 projectNames.each { projectName ->
   include projectName
+  //println "including ${projectName}"
   def project = getBndProject(workspace, projectName)
-  project?.getDependson()*.getName().each {
-    include it
+  project?.dependson.each {
+    include it.name
   }
 }
 
@@ -83,15 +87,16 @@ def getBndProject(Workspace workspace, String projectName) {
   }
   project.prepare()
   if (project.isValid()) {
+    //println "valid: ${project}"
     return project
   }
 
   project.getInfo(workspace, "${rootDir} :")
   def errorCount = 0
-  project.getWarnings().each {
+  project.warnings.each {
     println "Warning: ${it}"
   }
-  project.getErrors().each {
+  project.errors.each {
     println "Error  : ${it}"
     errorCount++
   }

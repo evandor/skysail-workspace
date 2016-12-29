@@ -1,4 +1,7 @@
+/dummy/
+/dummy.integrationtesting/
+generated/
+bin/
+bin_test/
 .gradle/
-/generated/
-enroute.zip
-.metadata
+.buildProfile/
